@@ -11,17 +11,17 @@ import useWebsocket from "../libs/useWebsocket";
 export default function Home() {
   const [room, setSelectedRoom] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [typingStatus, setTypingStatus] = useState({});
   const [showLogIn, setShowLogIn] = useState(false);
   const [auth, setAuthUser] = useLocalStorage("user", false);
   const [isLoading, messages, setMessages, fetchConversations] =
     useConversations("");
 
-  const handleTyping = (mode) => {
-    if (mode === "IN") {
-      setIsTyping(true);
-    } else {
-      setIsTyping(false);
-    }
+  const handleTyping = (mode, roomId) => {
+    setTypingStatus((prevStatus) => ({
+      ...prevStatus,
+      [roomId]: mode === "IN",
+    }));
   };
 
   const handleMessage = (msg, userId) => {
@@ -38,7 +38,7 @@ export default function Home() {
       switch (messageData.chat_type) {
         case "TYPING": {
           console.log("value of typing", messageData.value[0]);
-          handleTyping(messageData.value[0]);
+          handleTyping(messageData.value[0], messageData.room_id);
           return;
         }
         case "TEXT": {
@@ -150,7 +150,7 @@ export default function Home() {
                       {room.users.get_target_user(auth.id)}
                     </p>
                     <div className="text-xs text-gray-400">
-                      {isTyping ? "Typing..." : "10:15 AM"}
+                      {typingStatus[room?.id] ? "Typing..." : "10:15 AM"}
                     </div>
                   </div>
                 </div>
