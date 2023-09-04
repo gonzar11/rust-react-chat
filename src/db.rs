@@ -79,15 +79,18 @@ pub fn get_all_rooms(conn: &mut SqliteConnection) -> Result<Vec<RoomResponse>, D
             .map(|item| (item.id.to_string(), item)),
     );
 
-    let response_rooms = rooms_data.into_iter().map(|room| {
-        let users = rooms_map
-            .get(&room.id.to_string())
-            .unwrap()
-            .into_iter()
-            .map(|id| users_map.get(id.to_owned()).unwrap().clone())
-            .collect::<Vec<_>>();
-        return RoomResponse{ room, users };
-    }).collect::<Vec<_>>();
+    let response_rooms = rooms_data
+        .into_iter()
+        .map(|room| {
+            let users = rooms_map
+                .get(&room.id.to_string())
+                .unwrap()
+                .into_iter()
+                .map(|id| users_map.get(id.to_owned()).unwrap().clone())
+                .collect::<Vec<_>>();
+            return RoomResponse { room, users };
+        })
+        .collect::<Vec<_>>();
     Ok(response_rooms)
 }
 
@@ -131,4 +134,18 @@ pub fn insert_new_conversation(
         .execute(conn)?;
 
     Ok(new_conversation)
+}
+
+pub fn update_last_message(
+    room_id: &str,
+    new_last_message: &str,
+    conn: &mut SqliteConnection,
+) -> Result<(), DbError> {
+    use crate::schema::rooms::dsl::*;
+
+    diesel::update(rooms.filter(id.eq(room_id)))
+        .set(last_message.eq(new_last_message))
+        .execute(conn)?;
+
+    Ok(())
 }
