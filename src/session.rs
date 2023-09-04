@@ -53,7 +53,6 @@ impl Actor for WsChatSession {
         self.hb(ctx);
 
         let addr = ctx.address();
-
         self.addr
             .send(server::Connect {
                 addr: addr.recipient(),
@@ -78,6 +77,8 @@ impl Actor for WsChatSession {
 impl Handler<server::Message> for WsChatSession {
     type Result = ();
     fn handle(&mut self, msg: server::Message, ctx: &mut Self::Context) -> Self::Result {
+        println!("Simple message");
+
         ctx.text(msg.0);
     }
 }
@@ -143,6 +144,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         };
                         let _ = db::insert_new_conversation(&mut conn, new_conversation);
                         let msg = serde_json::to_string(&chat_msg).unwrap();
+                        let __ = db::update_last_message(
+                            &input.room_id,
+                            &input.value.join(""),
+                            &mut conn,
+                        );
                         self.addr.do_send(server::ClientMessage {
                             id: self.id,
                             msg,

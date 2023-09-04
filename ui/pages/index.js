@@ -8,9 +8,20 @@ import useConversations from "../libs/useConversation";
 import useLocalStorage from "../libs/useLocalStorage";
 import useWebsocket from "../libs/useWebsocket";
 
+async function getRooms() {
+  try {
+    const url = "http://localhost:8080/rooms";
+    let result = await fetch(url);
+    return result.json();
+  } catch (e) {
+    console.log(e);
+    return Promise.resolve(null);
+  }
+}
+
 export default function Home() {
   const [room, setSelectedRoom] = useState(null);
-  const [isTyping, setIsTyping] = useState(false);
+  const [rooms, setRooms] = useState([]);
   const [typingStatus, setTypingStatus] = useState({});
   const [showLogIn, setShowLogIn] = useState(false);
   const [auth, setAuthUser] = useLocalStorage("user", false);
@@ -22,6 +33,15 @@ export default function Home() {
       ...prevStatus,
       [roomId]: mode === "IN",
     }));
+
+    setRooms((prevData) => {
+      return prevData.map((item) => {
+        if (item.room.id === roomId) {
+          return { ...item, room: { ...item.room, isTyping: mode === "IN" } };
+        }
+        return item;
+      });
+    });
   };
 
   const handleMessage = (msg, userId) => {
@@ -111,6 +131,11 @@ export default function Home() {
   };
 
   useEffect(() => setShowLogIn(!auth), [auth]);
+  useEffect(() => {
+    getRooms().then((data) => {
+      setRooms(data);
+    });
+  }, []);
 
   return (
     <div>
@@ -127,7 +152,11 @@ export default function Home() {
       >
         <main className="flex w-full max-w-[1020px] h-[700px] mx-auto bg-[#FAF9FE] rounded-[25px] backdrop-opacity-30 opacity-95">
           <aside className="bg-[#F0EEF5] w-[325px] h-[700px] rounded-l-[25px] p-4 overflow-auto relative">
-            <ChatList onChatChange={updateMessages} userId={auth.id} />
+            <ChatList
+              onChatChange={updateMessages}
+              userId={auth.id}
+              rooms={rooms}
+            />
             <button
               onClick={signOut}
               className="text-xs w-full max-w-[295px] p-3 rounded-[10px] bg-violet-200 font-semibold text-violet-600 text-center absolute bottom-5"
