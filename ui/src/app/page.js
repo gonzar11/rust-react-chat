@@ -143,11 +143,15 @@ export default function Home() {
   };
 
   const sendMessage = useWebsocket(onMessage);
-  const updateMessages = (data) => {
+
+  const updateMessages = (data, index) => {
+    console.log("Updating Messages for Room: ", data);
     if (!data.id) return;
     fetchConversations(data.id);
     setSelectedRoom(data);
   };
+
+
 
   const signOut = () => {
     window.localStorage.removeItem('user');
@@ -160,6 +164,19 @@ export default function Home() {
       setRooms(data);
     });
   }, []);
+
+  const mappedRooms = rooms.map((room, index) => {
+    const targetUser = room.users
+      .filter((user) => user.id !== auth.id)
+      .map((user) => user.username)
+      .join('');
+
+    return {
+      id: room.room.id,
+      username: targetUser,
+      onClick: () => updateMessages(room, index),
+    };
+  });
 
   return (
     <div>
@@ -183,6 +200,7 @@ export default function Home() {
                 <NewMessageButton />
               </Container>
               <Spacer size="32" />
+              <SidebarList sidebarList={mappedRooms} />
               <ChatList
                 onChatChange={updateMessages}
                 userId={auth.id}
@@ -201,19 +219,26 @@ export default function Home() {
             {room?.id && (
               <MainContainer>
                 <HeaderContainer>
-                  <Header isOnline lastSeen={typingStatus[room?.id] ? 'Typing...' : '10:15 AM'} username={room.users.get_target_user(auth.id)} />
+                  <Header
+                    isOnline
+                    lastSeen={typingStatus[room?.id] ? 'Typing...' : '10:15 AM'}
+                    username={room.users.get_target_user(auth.id)}
+                  />
                 </HeaderContainer>
                 {isLoading && room.id && (
                   <p className="px-4 text-slate-500">Loading conversation...</p>
                 )}
                 <MessagesContainer>
-                  <Conversation data={messages} auth={auth} users={room.users} />
+                  <Conversation
+                    data={messages}
+                    auth={auth}
+                    users={room.users}
+                  />
                 </MessagesContainer>
 
                 <MessageInputContainer>
                   <MessageInput onSendMessage={submitMessage} />
                 </MessageInputContainer>
-
               </MainContainer>
             )}
           </Container>

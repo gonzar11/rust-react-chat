@@ -1,33 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import Avatar from "./avatar";
 
-function ConversationItem({ right, content, username }) {
-  if (right) {
-    return (
-      <div className="w-full flex justify-end">
-        <div className="flex gap-3 justify-end">
-          <div className="max-w-[65%] bg-violet-500 p-3 text-sm rounded-xl rounded-br-none">
-            <p className="text-white">{content}</p>
-          </div>
-          <div className="mt-auto">
-            <Avatar>{username}</Avatar>
-          </div>
-        </div>
-      </div>
-    );
-  }
+import {
+  MessageGroup
+} from 'janus-ds';
 
-  return (
-    <div className="flex gap-3 w-full">
-      <div className="mt-auto">
-        <Avatar color="rgb(245 158 11)">{username}</Avatar>
-      </div>
-      <div className="max-w-[65%] bg-gray-200 p-3 text-sm rounded-xl rounded-bl-none">
-        <p>{content}</p>
-      </div>
-    </div>
-  );
-}
 
 export default function Conversation({ data, auth, users }) {
   const ref = useRef(null);
@@ -36,18 +13,52 @@ export default function Conversation({ data, auth, users }) {
     ref.current?.scrollTo(0, ref.current.scrollHeight);
   }, [data]);
 
+  const directionForMessage = (messageUserId) => {
+    return messageUserId === auth.id ? 'outgoing' : 'incoming';
+  };
+
+  const avatarTextForMessage = (messageUserId) => {
+    return users[messageUserId]?.name?.slice(0, 2) || "NA";
+  };
+
+  const messageGroups = [];
+  let currentGroup = null;
+
+  data.forEach((message) => {
+    const direction = directionForMessage(message.user_id);
+
+    if (currentGroup && currentGroup.direction === direction) {
+      currentGroup.messages.push({
+        id: `message-${message.id}`,
+        children: message.content,
+      });
+    } else {
+      currentGroup = {
+        direction,
+        messages: [
+          {
+            id: `message-${message.id}`,
+            children: message.content,
+          },
+        ],
+      };
+      if (direction === 'incoming') {
+        currentGroup.avatarText = avatarTextForMessage(message.user_id);
+      }
+      messageGroups.push(currentGroup);
+    }
+  });
+
   return (
-    <div className="p-4 space-y-4 overflow-auto" ref={ref}>
-      {data.map((item) => {
-        return (
-          <ConversationItem
-            right={item.user_id === auth.id}
-            content={item.content}
-            username={users.get(item.user_id)}
-            key={item.id}
-          />
-        );
-      })}
+    <div ref={ref}>
+      {messageGroups.map((group, index) => (
+        <MessageGroup
+          key={index}
+          direction={group.direction}
+          messages={group.messages}
+          avatarText={group.direction === 'incoming' ? group.avatarText : undefined}
+        />
+      ))}
     </div>
   );
 }
